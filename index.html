@@ -894,6 +894,47 @@
             .summary-grid {
                 grid-template-columns: 1fr;
             }
+
+            .mobile-nav {
+                display: flex;
+                position: fixed;
+                bottom: 0;
+                left: 0;
+                right: 0;
+                background: var(--container-bg);
+                border-top: 1px solid var(--input-border);
+                padding: 10px;
+                justify-content: space-around;
+                z-index: 1000;
+                box-shadow: 0 -2px 10px rgba(0, 0, 0, 0.1);
+            }
+
+            .nav-btn {
+                background: none;
+                border: none;
+                font-size: 1.2em;
+                cursor: pointer;
+                color: var(--text-color);
+                padding: 10px;
+                border-radius: 8px;
+                transition: background 0.3s;
+            }
+
+            .nav-btn:hover {
+                background: var(--input-bg);
+            }
+
+            .main-content {
+                padding-bottom: 80px;
+            }
+
+            .section {
+                display: none;
+            }
+
+            .section.active {
+                display: block;
+            }
         }
     </style>
 </head>
@@ -1074,44 +1115,12 @@
                 </div>
                 <div class="form-group" id="descriptionGroup">
                     <label for="modalTransactionDescription">Description</label>
-                    <input type="text" id="modalTransactionDescription" placeholder="e.g., Groceries">
+                    <input type="text" id="modalTransactionDescription" placeholder="e.g., Monthly Salary or Groceries">
                 </div>
                 <div class="form-group">
-                    <label for="modalTransactionCategory">Category</label>
-                    <select id="modalTransactionCategory">
-                        <!-- Income categories -->
-                        <option value="Salary" class="income-option">Salary</option>
-                        <option value="Freelance" class="income-option">Freelance</option>
-                        <option value="Side Hustle" class="income-option">Side Hustle</option>
-                        <option value="Investments" class="income-option">Investments</option>
-                        <!-- Expense categories -->
-                        <option value="Food" class="expense-option" style="display: none;">Food</option>
-                        <option value="Transportation" class="expense-option" style="display: none;">Transportation</option>
-                        <option value="Utilities" class="expense-option" style="display: none;">Utilities</option>
-                        <option value="Entertainment" class="expense-option" style="display: none;">Entertainment</option>
-                        <option value="Healthcare" class="expense-option" style="display: none;">Healthcare</option>
-                        <option value="Shopping" class="expense-option" style="display: none;">Shopping</option>
-                        <option value="Education" class="expense-option" style="display: none;">Education</option>
-                        <option value="Other" class="expense-option" style="display: none;">Other</option>
-                    </select>
-                </div>
-                <div class="form-group">
-                    <label for="modalTransactionIcon">Icon</label>
-                    <select id="modalTransactionIcon">
-                        <!-- Income icons -->
-                        <option value="💼" class="income-option">💼 Work</option>
-                        <option value="🧑‍💻" class="income-option">🧑‍💻 Freelance</option>
-                        <option value="🪙" class="income-option">🪙 Side Hustle</option>
-                        <option value="📈" class="income-option">📈 Investments</option>
-                        <!-- Expense icons -->
-                        <option value="🍔" class="expense-option" style="display: none;">🍔 Food</option>
-                        <option value="🚗" class="expense-option" style="display: none;">🚗 Transportation</option>
-                        <option value="💡" class="expense-option" style="display: none;">💡 Utilities</option>
-                        <option value="🎉" class="expense-option" style="display: none;">🎉 Entertainment</option>
-                        <option value="🏥" class="expense-option" style="display: none;">🏥 Healthcare</option>
-                        <option value="🛍️" class="expense-option" style="display: none;">🛍️ Shopping</option>
-                        <option value="🎓" class="expense-option" style="display: none;">🎓 Education</option>
-                        <option value="📦" class="expense-option" style="display: none;">📦 Other</option>
+                    <label for="modalTransactionCategoryIcon">Category & Icon</label>
+                    <select id="modalTransactionCategoryIcon">
+                        <!-- Options will be populated by JS -->
                     </select>
                 </div>
                 <button onclick="confirmAddTransaction()">Save Transaction</button>
@@ -1123,6 +1132,9 @@
         // Initialize data from localStorage
         let expenses = JSON.parse(localStorage.getItem('expenses')) || [];
         let income = JSON.parse(localStorage.getItem('income')) || [];
+        // Migrate income data
+        income = income.map(inc => ({ ...inc, category: inc.category || inc.source, description: inc.description || inc.source }));
+        localStorage.setItem('income', JSON.stringify(income));
         let savingsGoal = parseFloat(localStorage.getItem('savingsGoal')) || 0;
         let bankBalance = parseFloat(localStorage.getItem('bankBalance')) || 0;
         let currentFilter = 'All';
@@ -1150,6 +1162,10 @@
             if (savedTheme === 'dark') {
                 document.body.classList.add('dark-mode');
                 document.querySelector('.theme-toggle').textContent = '☀️ Light Mode';
+            }
+            // Mobile navigation
+            if (window.innerWidth <= 600) {
+                showSection('home');
             }
         });
 
@@ -1202,44 +1218,53 @@
 
         function updateTransactionForm() {
             const type = document.querySelector('input[name="transactionType"]:checked').value;
-            const incomeOptions = document.querySelectorAll('.income-option');
-            const expenseOptions = document.querySelectorAll('.expense-option');
             const descriptionGroup = document.getElementById('descriptionGroup');
+            const select = document.getElementById('modalTransactionCategoryIcon');
+            select.innerHTML = '';
 
             if (type === 'income') {
-                incomeOptions.forEach(option => option.style.display = 'block');
-                expenseOptions.forEach(option => option.style.display = 'none');
-                descriptionGroup.style.display = 'none';
-                // Set default values for income
-                document.getElementById('modalTransactionCategory').value = 'Salary';
-                document.getElementById('modalTransactionIcon').value = '💼';
-            } else {
-                incomeOptions.forEach(option => option.style.display = 'none');
-                expenseOptions.forEach(option => option.style.display = 'block');
                 descriptionGroup.style.display = 'block';
-                // Set default values for expense
-                document.getElementById('modalTransactionCategory').value = 'Food';
-                document.getElementById('modalTransactionIcon').value = '🍔';
+                select.innerHTML = `
+                    <option value="Salary|💼">💼 Salary</option>
+                    <option value="Freelance|🧑‍💻">🧑‍💻 Freelance</option>
+                    <option value="Side Hustle|🪙">🪙 Side Hustle</option>
+                    <option value="Investments|📈">📈 Investments</option>
+                `;
+                select.value = 'Salary|💼';
+            } else {
+                descriptionGroup.style.display = 'block';
+                select.innerHTML = `
+                    <option value="Food|🍔">🍔 Food</option>
+                    <option value="Transportation|🚗">🚗 Transportation</option>
+                    <option value="Utilities|💡">💡 Utilities</option>
+                    <option value="Entertainment|🎉">🎉 Entertainment</option>
+                    <option value="Healthcare|🏥">🏥 Healthcare</option>
+                    <option value="Shopping|🛍️">🛍️ Shopping</option>
+                    <option value="Education|🎓">🎓 Education</option>
+                    <option value="Other|📦">📦 Other</option>
+                `;
+                select.value = 'Food|🍔';
             }
         }
 
         function confirmAddTransaction() {
             const type = document.querySelector('input[name="transactionType"]:checked').value;
             const amount = parseFloat(document.getElementById('modalTransactionAmount').value);
-            const category = document.getElementById('modalTransactionCategory').value;
-            const icon = document.getElementById('modalTransactionIcon').value;
+            const categoryIcon = document.getElementById('modalTransactionCategoryIcon').value;
+            const [category, icon] = categoryIcon.split('|');
 
             if (isNaN(amount) || amount <= 0) {
                 alert('Please enter a valid amount');
                 return;
             }
 
+            const description = document.getElementById('modalTransactionDescription').value.trim();
+            if (!description) {
+                alert('Please enter a description');
+                return;
+            }
+
             if (type === 'expense') {
-                const description = document.getElementById('modalTransactionDescription').value.trim();
-                if (!description) {
-                    alert('Please enter a description');
-                    return;
-                }
 
                 if (isEditingTransaction && editingTransactionType === 'expense') {
                     // Update existing expense
@@ -1277,7 +1302,8 @@
                         income[index] = {
                             ...income[index],
                             amount: amount,
-                            source: category,
+                            description: description,
+                            category: category,
                             icon: icon
                         };
                     }
@@ -1289,7 +1315,8 @@
                     const incomeItem = {
                         id: Date.now(),
                         amount: amount,
-                        source: category,
+                        description: description,
+                        category: category,
                         icon: icon,
                         date: new Date().toLocaleDateString()
                     };
@@ -1323,8 +1350,7 @@
                 document.querySelector('input[name="transactionType"][value="expense"]').checked = true;
                 document.getElementById('modalTransactionAmount').value = expense.amount;
                 document.getElementById('modalTransactionDescription').value = expense.description;
-                document.getElementById('modalTransactionCategory').value = expense.category;
-                document.getElementById('modalTransactionIcon').value = expense.icon;
+                document.getElementById('modalTransactionCategoryIcon').value = expense.category + '|' + expense.icon;
                 document.querySelector('.modal-title').textContent = 'Edit Expense';
                 document.querySelector('#transactionModal .input-card button').textContent = 'Update Expense';
                 updateTransactionForm();
@@ -1340,8 +1366,8 @@
                 editingTransactionType = 'income';
                 document.querySelector('input[name="transactionType"][value="income"]').checked = true;
                 document.getElementById('modalTransactionAmount').value = inc.amount;
-                document.getElementById('modalTransactionCategory').value = inc.source;
-                document.getElementById('modalTransactionIcon').value = inc.icon;
+                document.getElementById('modalTransactionDescription').value = inc.description || '';
+                document.getElementById('modalTransactionCategoryIcon').value = inc.category + '|' + inc.icon;
                 document.querySelector('.modal-title').textContent = 'Edit Income';
                 document.querySelector('#transactionModal .input-card button').textContent = 'Update Income';
                 updateTransactionForm();
@@ -1560,7 +1586,7 @@
             // Combine expenses and income
             let allTransactions = [
                 ...expenses.map(exp => ({ ...exp, type: 'expense', displayCategory: exp.category })),
-                ...income.map(inc => ({ ...inc, type: 'income', displayCategory: inc.source, description: inc.source }))
+                ...income.map(inc => ({ ...inc, type: 'income', displayCategory: inc.category }))
             ];
 
             // Filter transactions
@@ -1580,7 +1606,7 @@
                     const amountPrefix = isIncome ? '+' : '';
                     const categoryBg = isIncome ? '#e8f5e9' : '#eff6ff';
                     const categoryColor = isIncome ? '#27ae60' : '#475569';
-                    const categoryText = isIncome ? 'Income' : trans.category;
+                    const categoryText = trans.category;
                     const editFunction = isIncome ? `editIncome(${trans.id})` : `editExpense(${trans.id})`;
                     const deleteFunction = isIncome ? `deleteIncome(${trans.id})` : `deleteExpense(${trans.id})`;
 
@@ -1604,6 +1630,36 @@
                 }).join('');
             }
         }
+
+        function showSection(section) {
+            if (section === 'add') {
+                openTransactionModal();
+                return;
+            }
+            // Hide all sections
+            document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
+            // Show specific sections
+            if (section === 'home') {
+                // Bank Account, Savings Goal, Add Transaction, Transactions
+                document.querySelectorAll('.section')[0].classList.add('active');
+                document.querySelectorAll('.section')[1].classList.add('active');
+                document.querySelectorAll('.section')[2].classList.add('active');
+                document.querySelectorAll('.section')[3].classList.add('active');
+            } else if (section === 'summary') {
+                // Monthly Summary
+                document.querySelectorAll('.section')[4].classList.add('active');
+            } else if (section === 'goals') {
+                // Savings Goal
+                document.querySelectorAll('.section')[1].classList.add('active');
+            }
+        }
     </script>
+
+    <div class="mobile-nav" id="mobileNav">
+        <button class="nav-btn" onclick="showSection('home')">🏠 Home</button>
+        <button class="nav-btn" onclick="showSection('add')">➕ Add</button>
+        <button class="nav-btn" onclick="showSection('summary')">📊 Summary</button>
+        <button class="nav-btn" onclick="showSection('goals')">🎯 Goals</button>
+    </div>
 </body>
 </html>
