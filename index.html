@@ -838,7 +838,12 @@
             border-radius: 18px;
             margin-top: 15px;
             border: 1px solid var(--bank-display-border);
-            transition: background 0.3s, border-color 0.3s;
+            transition: background 0.3s, border-color 0.3s, transform 0.2s;
+        }
+
+        .bank-display:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 16px rgba(99, 102, 241, 0.2);
         }
 
         .bank-display p {
@@ -959,11 +964,12 @@
                 </div>
                 <button onclick="setBankBalance()">Update Balance</button>
                 
-                <div class="bank-display" id="bankDisplay" style="display: none;">
+                <div class="bank-display" id="bankDisplay" style="display: none; cursor: pointer;" onclick="toggleTransactionHistory()">
                     <p>Current Balance</p>
                     <div class="amount" id="bankBalanceAmount">$0.00</div>
                     <p style="margin-top: 10px; font-size: 0.9em;">Available: <span id="bankAvailable">$0.00</span></p>
                     <p style="font-size: 0.9em;">After Income & Expenses: <span id="bankAfterExpenses">$0.00</span></p>
+                    <p style="margin-top: 12px; font-size: 0.85em; color: #6366f1; font-weight: 600;">👆 Click to view transaction history</p>
                 </div>
             </div>
 
@@ -1640,26 +1646,33 @@
             document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
             // Show specific sections
             if (section === 'home') {
-                // Bank Account, Savings Goal, Add Transaction, Transactions
+                // Bank Account and Savings Goal only
                 document.querySelectorAll('.section')[0].classList.add('active');
                 document.querySelectorAll('.section')[1].classList.add('active');
-                document.querySelectorAll('.section')[2].classList.add('active');
-                document.querySelectorAll('.section')[3].classList.add('active');
             } else if (section === 'summary') {
                 // Monthly Summary
                 document.querySelectorAll('.section')[4].classList.add('active');
-            } else if (section === 'goals') {
-                // Savings Goal
-                document.querySelectorAll('.section')[1].classList.add('active');
+            }
+        }
+
+        function toggleTransactionHistory() {
+            const section2 = document.querySelectorAll('.section')[2];
+            const section3 = document.querySelectorAll('.section')[3];
+            
+            if (section2.classList.contains('active')) {
+                section2.classList.remove('active');
+                section3.classList.remove('active');
+            } else {
+                section2.classList.add('active');
+                section3.classList.add('active');
             }
         }
     </script>
 
     <div class="mobile-nav" id="mobileNav">
-        <button class="nav-btn" onclick="showSection('home')">🏠 Home</button>
-        <button class="nav-btn" onclick="showSection('add')">➕ Add</button>
+        <button class="nav-btn" onclick="showSection('home')">🏠</button>
+        <button class="nav-btn" onclick="showSection('add')">➕</button>
         <button class="nav-btn" onclick="showSection('summary')">📊 Summary</button>
-        <button class="nav-btn" onclick="showSection('goals')">🎯 Goals</button>
     </div>
 </body>
 </html>
